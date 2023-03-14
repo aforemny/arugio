@@ -33,13 +33,10 @@ fn main() {
         .add_system(arugio_shared::update_position)
         .add_system(update_ball_translation)
         .add_system(update_camera_translation)
-        .add_system_to_stage(CoreStage::PreUpdate, read_component_channel::<Position>)
-        .add_system_to_stage(
-            CoreStage::PreUpdate,
-            read_component_channel::<TargetVelocity>,
-        )
-        .add_system_to_stage(CoreStage::PreUpdate, read_server_message_channel)
-        .add_system_to_stage(CoreStage::PostUpdate, broadcast_local_changes)
+        .add_system(read_component_channel::<Position>.in_base_set(CoreSet::PreUpdate))
+        .add_system(read_component_channel::<TargetVelocity>.in_base_set(CoreSet::PreUpdate))
+        .add_system(read_server_message_channel.in_base_set(CoreSet::PreUpdate))
+        .add_system(broadcast_local_changes.in_base_set(CoreSet::PostUpdate))
         .run();
 }
 
@@ -55,20 +52,23 @@ fn setup_world(
         ..Default::default()
     };
 
-    cmd.spawn_bundle(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 200.0 })),
+    cmd.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(shape::Plane {
+            size: 200.0,
+            subdivisions: 0
+        })),
         material: materials.add(map_material),
         transform: Transform::from_rotation(Quat::from_rotation_x(PI * 0.5)),
         ..Default::default()
     });
 
-    cmd.spawn_bundle(PerspectiveCameraBundle {
+    cmd.spawn(Camera3dBundle {
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
             .looking_at(Vec3::default(), Vec3::Y),
         ..Default::default()
     })
     .with_children(|parent| {
-        parent.spawn_bundle(PointLightBundle {
+        parent.spawn(PointLightBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, -10.0)),
             ..Default::default()
         });
@@ -110,7 +110,7 @@ fn read_component_channel<C: Component + ChannelMessage>(
                     cmd.entity(*entity).insert(component);
                 }
                 None => {
-                    cmd.spawn_bundle(BallBundle::new(ball_id)).insert(component);
+                    cmd.spawn(BallBundle::new(ball_id)).insert(component);
                 }
             }
         }
@@ -138,7 +138,7 @@ fn read_server_message_channel(
                             cmd.entity(entity).insert(LocalPlayer);
                         }
                         None => {
-                            cmd.spawn_bundle(BallBundle::new(your_ball_id))
+                            cmd.spawn(BallBundle::new(your_ball_id))
                                 .insert(LocalPlayer);
                         }
                     }
@@ -170,7 +170,7 @@ fn network_events(
 
 fn pointer_target(
     mut cmd: Commands,
-    windows: Res<Windows>,
+    mut windows: Query<&mut Window>,
     mouse_button_input: Res<Input<MouseButton>>,
     mut cursor_moved_event_reader: EventReader<CursorMoved>,
     local_players: Query<(Entity, &LocalPlayer, &TargetVelocity)>,
@@ -182,7 +182,7 @@ fn pointer_target(
 
         for event in cursor_moved_event_reader.iter() {
             if mouse_down {
-                let window = windows.get_primary().unwrap();
+                let window = windows.single_mut();
                 let resolution = Vec2::new(window.width() as f32, window.height() as f32);
                 let screen_center = resolution / 2.0;
                 let offset = event.position - screen_center;
@@ -258,11 +258,11 @@ fn add_ball_mesh(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for (entity, _) in balls_without_mesh.iter() {
-        cmd.entity(entity).insert_bundle(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Icosphere {
+        cmd.entity(entity).insert(PbrBundle {
+            mesh: meshes.add(Mesh::try_from(shape::Icosphere {
                 radius: 0.5,
                 subdivisions: 0,
-            })),
+            }).unwrap()),
             material: materials.add(Color::rgb(0.91, 0.44, 0.32).into()),
             ..Default::default()
         });

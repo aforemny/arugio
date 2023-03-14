@@ -1,7 +1,7 @@
 use arugio_shared::{BallId, ClientMessage, Position, ServerMessage, TargetVelocity, Velocity};
 use bevy::{
     app::ScheduleRunnerSettings,
-    prelude::App,
+    prelude::{App,CoreSet},
     prelude::{Component, EventReader, ResMut},
     MinimalPlugins,
 };
@@ -28,13 +28,10 @@ fn main() {
         .add_system(arugio_shared::update_position)
         .add_system(spawn_ball_system)
         .add_system(unowned_ball_input)
-        .add_system_to_stage(CoreStage::PreUpdate, read_component_channel::<Position>)
-        .add_system_to_stage(
-            CoreStage::PreUpdate,
-            read_component_channel::<TargetVelocity>,
-        )
-        .add_system_to_stage(CoreStage::PreUpdate, read_network_channels)
-        .add_system_to_stage(CoreStage::PostUpdate, broadcast_changes)
+        .add_system(read_component_channel::<Position>.in_base_set(CoreSet::PreUpdate))
+        .add_system(read_component_channel::<TargetVelocity>.in_base_set(CoreSet::PreUpdate))
+        .add_system(read_network_channels.in_base_set(CoreSet::PreUpdate))
+        .add_system(broadcast_changes.in_base_set(CoreSet::PostUpdate))
         .run();
 }
 
@@ -88,7 +85,7 @@ fn spawn_ball_system(mut cmd: Commands, unowned_balls: Query<&BallId, Without<Ne
     }
 
     if count < 3 {
-        cmd.spawn_bundle((
+        cmd.spawn((
             BallId(highest_id + 1),
             Position(vec2(
                 rand::random::<f32>() * 10.0 - 5.0,

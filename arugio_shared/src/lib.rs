@@ -1,5 +1,5 @@
 use bevy::{
-    core::Time,
+    time::Time,
     ecs::bundle::Bundle,
     prelude::{Component, Query, Res},
 };

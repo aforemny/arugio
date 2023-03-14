@@ -8,5 +8,5 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0.125", features = ["derive"] }
-bevy_networking_turbulence = { version = "0.4.1", default-features = false, features = ["use-webrtc"] }
-bevy = { version = "0.6.0", default-features = false }
+bevy_networking_turbulence = { path = "../bevy_networking_turbulence", default-features = false, features = [ "use-webrtc" ] }
+bevy = { version = "0.10.0", default-features = false }
