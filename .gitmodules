@@ -1,0 +1,6 @@
+[submodule "bevy_networking_turbulence"]
+	path = bevy_networking_turbulence
+	url = github.com:aforemny/bevy_networking_turbulence.git
+[submodule "bevy_web_fullscreen"]
+	path = bevy_web_fullscreen
+	url = github.com:aforemny/bevy_web_fullscreen.git
